@@ -54,7 +54,7 @@ Create the required configuration files:
 
 You should see the following screen:
 
-![dpkg-reconfigure]{dpkg-reconfigure.png}
+![dpkg-reconfigure](https://github.com/vmzilla/PHP-Nginx-MySQL-Setup/blob/main/dpkg-reconfigure.png)
 
 Choose “Yes” and hit Enter. Then, edit the configuration file:
 
@@ -93,7 +93,7 @@ Alternatively, you can replace `false` with a specific time if you want the serv
 
 `Unattended-Upgrade::Automatic-Reboot-Time "04:00";`
 
-If your server restarts, make sure to manually start any critical services that don’t restart automatically. By default, Nginx, PHP, and MySQL will restart, but you can refer to this [Stack Overflow thread]{https://stackoverflow.com/questions/26267032/ubuntu-14-04-etc-init-d-vs-etc-init-start-service-at-startup} for instructions on adding other services if necessary.
+If your server restarts, make sure to manually start any critical services that don’t restart automatically. By default, Nginx, PHP, and MySQL will restart, but you can refer to this [Stack Overflow thread](https://stackoverflow.com/questions/26267032/ubuntu-14-04-etc-init-d-vs-etc-init-start-service-at-startup) for instructions on adding other services if necessary.
 
 Finally, set how often the automatic updates should run:
 
