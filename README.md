@@ -107,3 +107,98 @@ Once you’ve finished editing, save and exit the file, then restart the service
 
 `service unattended-upgrades restart`
 
+Now that auto security upgrades has been setup we can proceed to create our SSH user.
+
+## Adding new user and setting up SSH
+
+* Adding new user
+
+We’ve completed the basic configuration of the web server and set up security updates. The next step is to create a new user on your server for two key reasons:
+
+*We’ll be disabling SSH access for the root user later in this chapter, so you’ll need an alternative user account to access your server.
+*The root user has extensive privileges that can execute potentially dangerous commands, so it’s recommended to create a new user with more restricted permissions for everyday tasks.
+
+This new user will be added to the sudo group so that you can execute commands which require heightened permissions, but only when required.
+
+`useradd -m -s /bin/bash -g example -d /home/example example`
+
+Here’s a breakdown of the command:
+
+-m : Creates the home directory for the user (/home/example).
+-s /bin/bash : Assigns the default shell (bash) to the user.
+-g example : Adds the user to the example group.
+-d /home/example : Specifies the home directory for the user.
+
+After running the command, you'll want to set a password for the user:
+
+`passwd example`
+
+This will prompt you to enter and confirm the password for the `example` user.
+
+Next, you need to add the new user to the sudo group:
+
+`usermod -a -G sudo example`
+
+You can then log out and login using the new user and make sure it has shell access.
+
+You can consider setting password less authentication for the `example` user by following the steps in the [thread here](https://www.tecmint.com/ssh-passwordless-login-using-ssh-keygen-in-5-easy-steps/)
+
+* SSH configuration 
+
+Now that the new user is created, it's time to enhance the server's security by configuring SSH. The first step is to disable SSH access for the root user, preventing SSH login using the root account. Open the SSH configuration file with vim:
+
+`vim /etc/ssh/sshd_config`
+
+The find `PermitRootLogin` and `PasswordAuthentication` and if there are already commented our make sure to uncomment them and set the values to `no`
+
+Restart the SSH services so that the changes gets updated.
+
+`service ssh restart`
+
+## Configure Firewall to allow trafiic only for SSH http and https
+
+The firewall adds an extra layer of security to your server by blocking unwanted inbound network traffic. In this guide, I’ll demonstrate how to use the `iptables` firewall, which is the most widely used on Linux systems and is typically installed by default. To make managing firewall rules easier, we use a package called `ufw` (Uncomplicated Firewall). While `ufw` is often pre-installed, if it's not, you can install it using the following command:
+
+`sudo apt install ufw`
+
+Now, we can start adding to the default rules, which block all incoming traffic while allowing all outgoing traffic. For now, let’s allow traffic on the ports for SSH (22), HTTP (80), and HTTPS (443):
+
+```
+sudo ufw allow ssh
+sudo ufw allow http
+sudo ufw allow https
+```
+
+To review which rules will be added to the firewall, enter the following command:
+
+`sudo ufw show added`
+
+Output:
+
+```
+Added user rules (see 'ufw status' for running firewall):
+ufw allow 22/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
+```
+
+The run below commands to enable ufw and check the status:
+
+```
+sudo ufw enable
+sudo ufw status verbose
+```
+
+## Install Fail2ban Service
+
+Fail2ban is a security tool that complements your firewall by monitoring and blocking suspicious intrusion attempts. When it detects malicious activity, it temporarily blocks the offending IP addresses by adding them to your firewall rules. Installing Fail2ban is strongly recommended for servers running WordPress, especially if you're using third-party plugins, as it adds an extra layer of protection to secure your web server.
+
+The Fail2ban program isn’t installed by default, so let’s install it now:
+
+`sudo apt install fail2ban`
+
+The default configuration should suffice, which will ban a host for 10 minutes after 6 unsuccessful login attempts via SSH. You can check default configuration in file /etc/fail2ban/jail.conf. To ensure the fail2ban service is running enter the following command:
+
+`sudo service fail2ban start`
+
+All set! You now have a solid foundation to start building your web server and have implemented key steps to prevent unauthorized access.
