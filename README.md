@@ -202,3 +202,120 @@ The default configuration should suffice, which will ban a host for 10 minutes a
 `sudo service fail2ban start`
 
 All set! You now have a solid foundation to start building your web server and have implemented key steps to prevent unauthorized access.
+
+
+# Install Nginx, PHP 8.4, and MySQL
+
+Now, we will begin the process of setting up Nginx, PHP-FPM, and MySQL — collectively known as the LEMP stack on Linux — to build the foundation of a functional PHP web application and server.
+
+## Install Nginx
+
+Nginx has become the most popular web server software for Linux servers, making it a logical choice over Apache. While the official Ubuntu package repository does include Nginx, the versions there are often outdated. To ensure you get the latest stable version, we’ll use the package repository maintained by Ondřej Surý.
+
+Start by adding the repository and updating the package lists:
+
+```
+sudo add-apt-repository ppa:ondrej/nginx -y
+sudo apt update
+```
+
+There may now be some packages that can be upgraded, let’s do that now:
+
+`sudo apt dist-upgrade -y`
+
+Then install Nginx:
+
+`sudo apt install nginx -y`
+
+Once complete, you can confirm that Nginx has been installed with the following command:
+
+`sudo nginx -v`
+
+Output:
+
+```
+example@vmzilla:~$ nginx -v
+nginx version: nginx/1.26.1
+```
+
+Now, try visiting the domain name pointing to your server’s IP address in your browser. You should see the Nginx welcome page. Be sure to type in http://, as browsers now default to https://, which won't work yet since SSL hasn't been set up.
+
+![nginx-default](https://github.com/vmzilla/PHP-Nginx-MySQL-Setup/blob/56e86161909c288532fd6801b3bd79a2bb89b384/nginx-default.png)
+
+Now that Nginx is successfully installed, it's time to make some basic configurations. While Nginx comes optimized out of the box, there are a few adjustments to improve performance. Before editing the configuration file, though, you’ll need to check your server’s CPU core count and the open file limit.
+
+Enter the following command to get the number of CPU cores your server has available. Take note of the number as we’ll use it in a minute:
+
+`sudo grep processor /proc/cpuinfo | wc -l`
+
+Run the following to get your server’s open file limit and take note, we’ll need it as well:
+
+`sudo ulimit -n`
+
+Next, open the Nginx configuration file, which can be found at /etc/nginx/nginx.conf which would look something like this:
+
+```
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+error_log /var/log/nginx/error.log;
+include /etc/nginx/modules-enabled/*.conf;
+events {
+        worker_connections 768;
+        # multi_accept on;
+}
+
+http {
+
+        ##
+        # Basic Settings
+        ##
+```
+
+Begin by setting the user to the username you're currently logged in with. In my case its `example`. This will simplify managing file permissions in the future. However, this is only secure if the server is accessed by a single user.
+
+The `worker_processes` directive specifies how many worker processes to spawn per server. A good rule of thumb is to set this to match the number of CPU cores available on your server. In my case, that's 2.
+
+The `events` block includes two key directives. First, the `worker_connections` directive should be set to your server's open file limit. This defines how many simultaneous connections each `worker_process` can handle. For example, if you have two CPU cores and an open file limit of 1024, your server can handle 2048 connections. However, the number of connections doesn't directly correspond to the number of users, as most web pages and browsers establish at least two connections per request.
+
+Additionally, the `multi_accept` directive should be uncommented and set to `on`. This tells each `worker_process` to accept all new connections at once, rather than accepting one connection at a time.
+
+Further down the file, you'll find the `http` block. The first directive to add is `keepalive_timeout`. This directive determines how long a connection to the client should remain open before Nginx closes it. It's a good idea to lower this value, as you don’t want idle connections lingering for up to 75 seconds when they could be used by new clients. I have set mine to 15 seconds. You can add this directive just above the `sendfile on;` directive.
+
+```
+http {
+
+        ##
+        # Basic Settings
+        ##
+
+        keepalive_timeout 15;
+        sendfile on;
+```
+
+For security purposes, uncomment the `server_tokens` directive and set it to `off`. This will prevent Nginx from displaying its version number in error messages and response headers.
+
+Underneath `server_tokens` add the following line to set the maximum upload size you require in your application.
+
+`client_max_body_size 64m;`
+
+I selected a value of `64m`, but you can increase it if you encounter issues uploading large files.
+
+Further down in the `http` block, you'll find a section for gzip compression. By default, gzip is enabled, but it's a good idea to adjust these values for better handling of static files. First, uncomment the `gzip_proxied` directive and set it to `any` to ensure all proxied request responses are gzipped. Next, uncomment the `gzip_comp_level` directive and set it to a value of `5`. This controls the compression level of responses, with a range of 1 to 9. Be cautious not to set it too high, as it can increase CPU usage. Lastly, uncomment the `gzip_types` directive, leaving the default values intact. This will ensure that JavaScript, CSS, and other file types are gzipped, along with HTML, which is always compressed by the gzip module.
+
+You must restart Nginx for the changes to take effect. Before doing so, ensure that the configuration files contain no errors by issuing the following command:
+
+`sudo nginx -t`
+
+If everything looks OK, go ahead and restart Nginx:
+
+`sudo service nginx restart`
+
+If it’s not already running, you can start Nginx with:
+
+`sudo service nginx start`
+
+
+
+
+
