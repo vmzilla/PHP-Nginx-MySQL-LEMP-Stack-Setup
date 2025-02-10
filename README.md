@@ -124,10 +124,10 @@ This new user will be added to the sudo group so that you can execute commands w
 
 Here’s a breakdown of the command:
 
--m : Creates the home directory for the user (/home/example).
--s /bin/bash : Assigns the default shell (bash) to the user.
--g example : Adds the user to the example group.
--d /home/example : Specifies the home directory for the user.
+-m : Creates the home directory for the user (/home/example).   
+-s /bin/bash : Assigns the default shell (bash) to the user.   
+-g example : Adds the user to the example group.   
+-d /home/example : Specifies the home directory for the user.    
 
 After running the command, you'll want to set a password for the user:
 
