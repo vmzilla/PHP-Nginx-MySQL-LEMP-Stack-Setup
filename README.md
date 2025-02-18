@@ -340,9 +340,9 @@ You’ll see `php-fpm` in the list of packages being installed. FastCGI Process 
 
 Once the installation is complete, test PHP to ensure it has been installed correctly:
 
-`sudo php-fpm8.3 -v`
+`sudo php-fpm8.4 -v`
 
-* Configure PHP 8.3 and PHP-FPM
+* Configure PHP 8.4 and PHP-FPM
 
 After installing Nginx and PHP, you need to configure the user and group under which the service will run. This setup does not provide security isolation between sites by configuring separate PHP pools. Instead, we will run a single PHP pool under your user account.
 
