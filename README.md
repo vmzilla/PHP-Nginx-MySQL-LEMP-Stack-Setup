@@ -315,7 +315,134 @@ If it’s not already running, you can start Nginx with:
 
 `sudo service nginx start`
 
+## Installing PHP 8.4
 
+This section covers the installation of PHP 8.4 along with a comprehensive set of extensions that are essential for various tasks, including web development, database interaction, image manipulation, email handling, and more. The following command will install PHP 8.4 and a wide range of useful extensions to enhance its functionality.
 
+Similar to Nginx, the official Ubuntu package repository includes PHP packages, but they may not be the latest versions. To get the most up-to-date version, I recommend using the repository maintained by Ondřej Surý. Simply add the repository and update the package lists, just like you did for Nginx.
 
+```
+sudo add-apt-repository ppa:ondrej/php -y
+sudo apt update
+```
+
+Then install PHP 8.4, as well as all the PHP packages you will require. Depending on the PHP extensions your application require you can modify below:
+
+```
+sudo apt install php8.4-fpm php8.4-common php8.4-mysql \
+php8.4-xml php8.4-intl php8.4-curl php8.4-gd \
+php8.4-imagick php8.4-cli php8.4-dev php8.4-imap \
+php8.4-mbstring php8.4-opcache php8.4-redis \
+php8.4-soap php8.4-zip -y
+```
+
+You’ll see `php-fpm` in the list of packages being installed. FastCGI Process Manager (FPM) is an alternative PHP FastCGI implementation with extra features, and it works particularly well with Nginx. It’s the recommended process manager when using PHP with Nginx.
+
+Once the installation is complete, test PHP to ensure it has been installed correctly:
+
+`sudo php-fpm8.3 -v`
+
+* Configure PHP 8.3 and PHP-FPM
+
+After installing Nginx and PHP, you need to configure the user and group under which the service will run. This setup does not provide security isolation between sites by configuring separate PHP pools. Instead, we will run a single PHP pool under your user account.
+
+Open the default pool configuration file:
+
+`sudo vim /etc/php/8.4/fpm/pool.d/www.conf`
+
+Change the following lines, replacing `www-data` with username we created earlier:
+
+```
+user = example
+group = example
+
+listen.owner = example
+listen.group = example
+```
+
+Next, you'll need to modify your `php.ini` file to increase the maximum upload size of your application. To apply the new upload limit, you must update both this setting and the `client_max_body_size` directive in Nginx. Begin by opening your `php.ini` file:
+
+`sudo vim /etc/php/8.4/fpm/php.ini`
+
+Change the following lines to match the value you assigned to the `client_max_body_size` directive when configuring Nginx:
+
+```
+upload_max_filesize = 64M
+post_max_size = 64M
+```
+
+While editing the `php.ini` file, let's also enable the OPcache file override setting. With this setting enabled, OPcache will serve the cached version of PHP files without checking for modifications on the file system, leading to improved PHP performance.
+
+`opcache.enable_file_override = 1`
+
+Save the file. Before restarting PHP, check that the configuration file syntax is correct:
+
+`sudo php-fpm8.4 -t`
+
+If the configuration test was successful, restart PHP using the following command:
+
+`sudo service php8.4-fpm restart`
+
+Now that Nginx and PHP are installed, let's verify they are working together properly. To do this, enable PHP in the default Nginx site configuration and create a PHP info file to view in your browser. While this step is optional, it’s useful to ensure that PHP files are processed correctly by the Nginx web server.
+
+Start by uncommenting a section in the default Nginx site configuration that was created when Nginx was installed:
+
+`sudo vim /etc/nginx/sites-available/default`
+
+Find the section which controls the PHP scripts.
+
+```
+# pass PHP scripts to FastCGI server
+#
+#location ~ \.php$ {
+#       include snippets/fastcgi-php.conf;
+#
+#       # With php-fpm (or other unix sockets):
+#       fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+#       # With php-cgi (or other tcp sockets):
+#       fastcgi_pass 127.0.0.1:9000;
+#}
+```
+
+As we’re using php-fpm, we can change that section to look like this:
+
+```
+# pass PHP scripts to FastCGI server
+
+location ~ \.php$ {
+       include snippets/fastcgi-php.conf;
+
+       # With php-fpm (or other unix sockets):
+       fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+}
+```
+
+Save the file, and then, as before, test to ensure the configuration file was edited correctly by running below command:
+
+`sudo nginx -t`
+
+If everything looks okay, go ahead and restart Nginx:
+
+`sudo service nginx restart`
+
+Next, create an `info.php` file in the default web root, which is `/var/www/html`.
+
+```
+cd /var/www/html
+sudo vim info.php
+```
+
+Add the following PHP code to that `info.php` file, and save it.
+
+`<?php phpinfo();`
+
+Lastly, because you set the `user` directive in your `nginx.conf` file to the user you’re currently logged in with, give that user permissions on the `info.php` file.
+
+`sudo chown example info.php`
+
+Now, if you navigate to the `info.php` file in your browser using the domain name you configured in Chapter 1, you should see the PHP info screen. This confirms that Nginx is able to process PHP files correctly.
+
+![php-info](https://github.com/vmzilla/PHP-Nginx-MySQL-LEMP-Stack-Setup/blob/5743828ec1967787579c0bb5afa53bbe4409ab66/info-php.png)
+
+Once you’ve tested this, you can go ahead and delete the `info.php` file.
 
